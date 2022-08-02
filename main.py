@@ -8,8 +8,8 @@ from graphik import Graphik
 black = (0,0,0)
 white = (255,255,255)
 
-displayWidth = 1920
-displayHeight = 1080
+displayWidth = 600
+displayHeight = 600
 
 gridSize = 50
 
