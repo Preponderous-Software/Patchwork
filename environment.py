@@ -30,8 +30,8 @@ class Environment:
         return self.creationDate
     
     def setCreationDate(self, creationDate: str):
-        if not re.match(r"\d{4}-\d{2}-\d{2}", creationDate):
-            raise ValueError("creationDate must be in the format YYYY-MM-DD")
+        # if not re.match(r"\d{4}-\d{2}-\d{2}", creationDate):
+        #     raise ValueError("creationDate must be in the format YYYY-MM-DD")
         self.creationDate = creationDate
         
     def __str__(self):
