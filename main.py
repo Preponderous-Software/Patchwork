@@ -15,7 +15,8 @@ white = (255,255,255)
 displayWidth = 600
 displayHeight = 600
 
-gridSize = 10
+numGrids = 1
+gridSize = 20
 
 url = "http://localhost"
 port = 9999
@@ -43,8 +44,8 @@ def main():
     graphik = Graphik(gameDisplay)
     pygame.display.set_caption("Visualizing Environment With Random Colors")
  
-    log("Creating environment...")
-    environment = environmentService.create_environment("Test", gridSize, gridSize)
+    log("Creating environment with " + str(numGrids) + " grid(s) of size " + str(gridSize) + "x" + str(gridSize))
+    environment = environmentService.create_environment("Test", numGrids, gridSize)
 
     locationWidth = displayWidth/gridSize
     locationHeight = displayHeight/gridSize
