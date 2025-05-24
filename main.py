@@ -16,7 +16,7 @@ displayWidth = 600
 displayHeight = 600
 
 numGrids = 1
-gridSize = 20
+gridSize = 50
 
 url = "http://localhost"
 port = 9999
