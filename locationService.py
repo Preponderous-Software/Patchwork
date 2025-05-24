@@ -2,6 +2,7 @@ from typing import List, Optional
 import logging
 import requests
 from dataclasses import dataclass
+from location import Location
 
 # Exception classes
 class NotFoundException(Exception):
@@ -11,12 +12,6 @@ class ServiceException(Exception):
     def __init__(self, message: str, cause: Exception = None):
         super().__init__(message)
         self.cause = cause
-
-# Location model
-@dataclass
-class Location:
-    id: int
-    # Add other fields as needed
 
 # Service configuration
 @dataclass

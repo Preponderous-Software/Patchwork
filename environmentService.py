@@ -3,7 +3,7 @@
 # MIT License
 
 import requests
-from src.main.python.preponderous.viron.models.environment import Environment
+from environment import Environment
 
 class EnvironmentService:
     def __init__(self, base_url):

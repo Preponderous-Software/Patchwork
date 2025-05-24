@@ -5,7 +5,7 @@ import logging
 from typing import List, Optional
 import requests
 from requests.exceptions import HTTPError
-from src.main.python.preponderous.viron.models.grid import Grid
+from grid import Grid
 
 logger = logging.getLogger(__name__)
 
