@@ -76,7 +76,8 @@ def main():
         environments[env_key] = {
             "environment_id": environment.getEnvironmentId(),
             "grid_size": gridSize,
-            "num_grids": numGrids
+            "num_grids": numGrids,
+            "creation_time_seconds": end_time - start_time
         }
         with open(env_file, "w") as f:
             json.dump(environments, f, indent=2)
