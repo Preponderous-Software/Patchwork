@@ -13,7 +13,13 @@ if "%~1"=="" (
     set "max_size=%~1"
 )
 REM Delete environments.json before starting
-if exist environments.json del environments.json
+echo Deleting environments.json if it exists...
+if exist environments.json (
+    echo environments.json found, deleting...
+    del environments.json
+) else (
+    echo environments.json not found, nothing to delete.
+)
 
 set "size_of_next_env=1"
 set "increment=1"
