@@ -25,7 +25,7 @@ set "error_log_file=error_log.txt"
 :loop
 if !size_of_next_env! leq !max_size! (
     @echo Starting environment with size !size_of_next_env!
-    %python_executable% %script% !size_of_next_env! --exit-after-create > %output_file% 2> %error_log_file%
+    %python_executable% %script% !size_of_next_env! --exit-after-create >> %output_file% 2>> %error_log_file%
     if errorlevel 1 (
         echo Error occurred while running with size !size_of_next_env!.
     ) else (
