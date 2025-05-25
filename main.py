@@ -85,6 +85,10 @@ def main():
         
         if exit_after_create:
             log("Exiting after environment creation.")
+            locations = locationService.get_locations_in_environment(environment.getEnvironmentId())
+            drawEnvironment(locations, graphik, displayWidth/gridSize, displayHeight/gridSize)
+            pygame.display.update()
+            time.sleep(2)
             pygame.quit()
             return
 
