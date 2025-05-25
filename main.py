@@ -78,7 +78,7 @@ def main():
             pygame.quit()
             return
     else:
-        graphik.drawText("Creating environment, please wait...", 100, 100, 20,"white")
+        graphik.drawText("Creating environment, please wait...", 400, 400, 20,"white")
         pygame.display.update()
         log("Creating environment with " + str(numGrids) + " grid(s) of size " + str(gridSize) + "x" + str(gridSize))
         start_time = time.time()
