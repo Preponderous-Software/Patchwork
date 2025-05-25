@@ -65,10 +65,21 @@ def main():
     env_key = f"{numGrids}x{gridSize}"
 
     if env_key in environments:
+        graphik.drawText("Loading existing environment, please wait...", displayWidth/2, displayHeight/2, 20, "white")
         env_id = environments[env_key]["environment_id"]
-        environment = environmentService.get_environment_by_id(env_id)
-        log(f"Loaded existing environment with id {env_id} and size {gridSize}x{gridSize} with {numGrids} grid(s).")
+        try:
+         environment = environmentService.get_environment_by_id(env_id)
+         log(f"Loaded existing environment with id {env_id} and size {gridSize}x{gridSize} with {numGrids} grid(s).")
+        except Exception as e:
+            log(f"Error loading existing environment: {e}")
+            graphik.drawText("Error loading environment, please check logs.", displayWidth/2, displayHeight/2 + 30, 20, "red")
+            pygame.display.update()
+            time.sleep(2)
+            pygame.quit()
+            return
     else:
+        graphik.drawText("Creating environment, please wait...", 100, 100, 20,"white")
+        pygame.display.update()
         log("Creating environment with " + str(numGrids) + " grid(s) of size " + str(gridSize) + "x" + str(gridSize))
         start_time = time.time()
         environment = environmentService.create_environment("Test", numGrids, gridSize)
