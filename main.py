@@ -1,12 +1,10 @@
 from operator import truediv
 import random
 import pygame
-from environment import Environment
-from environmentService import EnvironmentService
+from Viron.src.main.python.preponderous.viron.models.location import Location
+from Viron.src.main.python.preponderous.viron.services.environmentService import EnvironmentService
+from Viron.src.main.python.preponderous.viron.services.locationService import LocationService
 from graphik import Graphik
-from locationService import ServiceConfig
-from locationService import LocationService
-from location import Location
 
 
 black = (0,0,0)
@@ -21,11 +19,8 @@ gridSize = 50
 url = "http://localhost"
 port = 9999
 
-locationServiceConfig = ServiceConfig(viron_host=url, viron_port=port)
-locationService = LocationService(locationServiceConfig)
-
-environmentServiceBaseUrl = f"{url}:{port}"
-environmentService = EnvironmentService(environmentServiceBaseUrl)
+locationService = LocationService(url, port)
+environmentService = EnvironmentService(url, port)
 
 def log(message):
     print(message)
