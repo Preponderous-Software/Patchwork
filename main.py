@@ -34,7 +34,9 @@ port = 9999
 
 locationService = LocationService(url, port)
 environmentService = EnvironmentService(url, port)
-
+exit_after_create = False
+if len(sys.argv) > 2 and sys.argv[2] == "--exit-after-create":
+    exit_after_create = True
 def drawEnvironment(locations, graphik, locationWidth, locationHeight):
     for location in locations:
         location = Location(location_id=location['locationId'], x=location['x'], y=location['y'])
@@ -76,6 +78,11 @@ def main():
         with open(env_file, "w") as f:
             json.dump(environments, f, indent=2)
         log(f"Created new environment with id {environment.getEnvironmentId()}")
+        
+        if exit_after_create:
+            log("Exiting after environment creation.")
+            pygame.quit()
+            return
 
     locationWidth = displayWidth/gridSize
     locationHeight = displayHeight/gridSize
