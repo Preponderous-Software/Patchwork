@@ -49,37 +49,32 @@ def main():
     graphik = Graphik(gameDisplay)
     pygame.display.set_caption("Visualizing Environment With Random Colors")
  
-    env_file = "environment.json"
+    env_file = "environments.json"
+    environments = {}
 
+    # Load existing environments if file exists
     if os.path.exists(env_file):
-        log("Environment file exists, loading...")
+        log("Environments file exists, loading...")
         with open(env_file, "r") as f:
-            data = json.load(f)
-            env_id = data.get("environment_id")
-            saved_grid_size = data.get("grid_size")
-            saved_num_grids = data.get("num_grids")
-            if saved_grid_size == gridSize and saved_num_grids == numGrids:
-                environment = environmentService.get_environment_by_id(env_id)
-                log(f"Loaded existing environment with id {env_id} and size {saved_grid_size}x{saved_grid_size} with {saved_num_grids} grid(s).")
-            else:
-                log("Environment size does not match, creating new environment.")
-                environment = environmentService.create_environment("Test", numGrids, gridSize)
-                with open(env_file, "w") as fw:
-                    json.dump({
-                        "environment_id": environment.getEnvironmentId(),
-                        "grid_size": gridSize,
-                        "num_grids": numGrids
-                    }, fw)
-                log(f"Created new environment with id {environment.getEnvironmentId()}")
+            environments = json.load(f)
+
+    # Create a unique key for the environment based on grid size and numGrids
+    env_key = f"{numGrids}x{gridSize}"
+
+    if env_key in environments:
+        env_id = environments[env_key]["environment_id"]
+        environment = environmentService.get_environment_by_id(env_id)
+        log(f"Loaded existing environment with id {env_id} and size {gridSize}x{gridSize} with {numGrids} grid(s).")
     else:
         log("Creating environment with " + str(numGrids) + " grid(s) of size " + str(gridSize) + "x" + str(gridSize))
         environment = environmentService.create_environment("Test", numGrids, gridSize)
+        environments[env_key] = {
+            "environment_id": environment.getEnvironmentId(),
+            "grid_size": gridSize,
+            "num_grids": numGrids
+        }
         with open(env_file, "w") as f:
-            json.dump({
-                "environment_id": environment.getEnvironmentId(),
-                "grid_size": gridSize,
-                "num_grids": numGrids
-            }, f)
+            json.dump(environments, f, indent=2)
         log(f"Created new environment with id {environment.getEnvironmentId()}")
 
     locationWidth = displayWidth/gridSize
