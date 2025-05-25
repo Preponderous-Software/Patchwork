@@ -12,6 +12,9 @@ if "%~1"=="" (
     echo Max size provided: %~1
     set "max_size=%~1"
 )
+REM Delete environments.json before starting
+if exist environments.json del environments.json
+
 set "size_of_next_env=1"
 set "increment=1"
 set "output_file=output.txt"
