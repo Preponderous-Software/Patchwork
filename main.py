@@ -8,6 +8,7 @@ from graphik import Graphik
 import os
 import json
 import sys
+import time
 
 
 black = (0,0,0)
@@ -69,7 +70,9 @@ def main():
         log(f"Loaded existing environment with id {env_id} and size {gridSize}x{gridSize} with {numGrids} grid(s).")
     else:
         log("Creating environment with " + str(numGrids) + " grid(s) of size " + str(gridSize) + "x" + str(gridSize))
+        start_time = time.time()
         environment = environmentService.create_environment("Test", numGrids, gridSize)
+        end_time = time.time()
         environments[env_key] = {
             "environment_id": environment.getEnvironmentId(),
             "grid_size": gridSize,
@@ -77,7 +80,7 @@ def main():
         }
         with open(env_file, "w") as f:
             json.dump(environments, f, indent=2)
-        log(f"Created new environment with id {environment.getEnvironmentId()}")
+        log(f"Created new environment with id {environment.getEnvironmentId()} in {end_time - start_time:.2f} seconds.")
         
         if exit_after_create:
             log("Exiting after environment creation.")
