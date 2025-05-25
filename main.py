@@ -5,6 +5,8 @@ from Viron.src.main.python.preponderous.viron.models.location import Location
 from Viron.src.main.python.preponderous.viron.services.environmentService import EnvironmentService
 from Viron.src.main.python.preponderous.viron.services.locationService import LocationService
 from graphik import Graphik
+import os
+import json
 
 
 black = (0,0,0)
@@ -39,8 +41,21 @@ def main():
     graphik = Graphik(gameDisplay)
     pygame.display.set_caption("Visualizing Environment With Random Colors")
  
-    log("Creating environment with " + str(numGrids) + " grid(s) of size " + str(gridSize) + "x" + str(gridSize))
-    environment = environmentService.create_environment("Test", numGrids, gridSize)
+    env_file = "environment.json"
+
+    if os.path.exists(env_file):
+        log("Environment file exists, loading...")
+        with open(env_file, "r") as f:
+            data = json.load(f)
+            env_id = data.get("environment_id")
+            environment = environmentService.get_environment_by_id(env_id)
+            log(f"Loaded existing environment with id {env_id}")
+    else:
+        log("Creating environment with " + str(numGrids) + " grid(s) of size " + str(gridSize) + "x" + str(gridSize))
+        environment = environmentService.create_environment("Test", numGrids, gridSize)
+        with open(env_file, "w") as f:
+            json.dump({"environment_id": environment.getEnvironmentId()}, f)
+        log(f"Created new environment with id {environment.getEnvironmentId()}")
 
     locationWidth = displayWidth/gridSize
     locationHeight = displayHeight/gridSize
