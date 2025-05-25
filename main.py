@@ -7,25 +7,33 @@ from Viron.src.main.python.preponderous.viron.services.locationService import Lo
 from graphik import Graphik
 import os
 import json
+import sys
 
 
 black = (0,0,0)
 white = (255,255,255)
 
-displayWidth = 600
-displayHeight = 600
+displayWidth = 800
+displayHeight = 800
+
+def log(message):
+    print(message)
 
 numGrids = 1
-gridSize = 50
+if len(sys.argv) > 1:
+    try:
+        gridSize = int(sys.argv[1])
+    except ValueError:
+        log("Invalid grid size argument, using default of 50.")
+        gridSize = 50
+else:
+    gridSize = 50
 
 url = "http://localhost"
 port = 9999
 
 locationService = LocationService(url, port)
 environmentService = EnvironmentService(url, port)
-
-def log(message):
-    print(message)
 
 def drawEnvironment(locations, graphik, locationWidth, locationHeight):
     for location in locations:
@@ -48,13 +56,30 @@ def main():
         with open(env_file, "r") as f:
             data = json.load(f)
             env_id = data.get("environment_id")
-            environment = environmentService.get_environment_by_id(env_id)
-            log(f"Loaded existing environment with id {env_id}")
+            saved_grid_size = data.get("grid_size")
+            saved_num_grids = data.get("num_grids")
+            if saved_grid_size == gridSize and saved_num_grids == numGrids:
+                environment = environmentService.get_environment_by_id(env_id)
+                log(f"Loaded existing environment with id {env_id} and size {saved_grid_size}x{saved_grid_size} with {saved_num_grids} grid(s).")
+            else:
+                log("Environment size does not match, creating new environment.")
+                environment = environmentService.create_environment("Test", numGrids, gridSize)
+                with open(env_file, "w") as fw:
+                    json.dump({
+                        "environment_id": environment.getEnvironmentId(),
+                        "grid_size": gridSize,
+                        "num_grids": numGrids
+                    }, fw)
+                log(f"Created new environment with id {environment.getEnvironmentId()}")
     else:
         log("Creating environment with " + str(numGrids) + " grid(s) of size " + str(gridSize) + "x" + str(gridSize))
         environment = environmentService.create_environment("Test", numGrids, gridSize)
         with open(env_file, "w") as f:
-            json.dump({"environment_id": environment.getEnvironmentId()}, f)
+            json.dump({
+                "environment_id": environment.getEnvironmentId(),
+                "grid_size": gridSize,
+                "num_grids": numGrids
+            }, f)
         log(f"Created new environment with id {environment.getEnvironmentId()}")
 
     locationWidth = displayWidth/gridSize
