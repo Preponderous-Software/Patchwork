@@ -40,7 +40,6 @@ if len(sys.argv) > 2 and sys.argv[2] == "--exit-after-create":
     exit_after_create = True
 def drawEnvironment(locations, graphik, locationWidth, locationHeight):
     for location in locations:
-        location = Location(location_id=location['locationId'], x=location['x'], y=location['y'])
         red = random.randrange(50, 200)
         green = random.randrange(50, 200)
         blue = random.randrange(50, 200)
