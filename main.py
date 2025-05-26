@@ -1,7 +1,5 @@
-from operator import truediv
 import random
 import pygame
-from Viron.src.main.python.preponderous.viron.models.location import Location
 from Viron.src.main.python.preponderous.viron.services.environmentService import EnvironmentService
 from Viron.src.main.python.preponderous.viron.services.locationService import LocationService
 from graphik import Graphik
