@@ -1,7 +1,5 @@
-from operator import truediv
 import random
 import pygame
-from Viron.src.main.python.preponderous.viron.models.location import Location
 from Viron.src.main.python.preponderous.viron.services.environmentService import EnvironmentService
 from Viron.src.main.python.preponderous.viron.services.locationService import LocationService
 from graphik import Graphik
@@ -40,11 +38,12 @@ if len(sys.argv) > 2 and sys.argv[2] == "--exit-after-create":
     exit_after_create = True
 def drawEnvironment(locations, graphik, locationWidth, locationHeight):
     for location in locations:
-        location = Location(location_id=location['locationId'], x=location['x'], y=location['y'])
         red = random.randrange(50, 200)
         green = random.randrange(50, 200)
         blue = random.randrange(50, 200)
-        graphik.drawRectangle(location.get_x() * locationWidth, location.get_y() * locationHeight, locationWidth, locationHeight, (red,green,blue))
+        x = location.get_x() * locationWidth
+        y = location.get_y() * locationHeight
+        graphik.drawRectangle(x - 1, y - 1, locationWidth * 1.5, locationHeight * 1.5, (red,green,blue))
 
 def main():
     pygame.init()
