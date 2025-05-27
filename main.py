@@ -41,7 +41,9 @@ def drawEnvironment(locations, graphik, locationWidth, locationHeight):
         red = random.randrange(50, 200)
         green = random.randrange(50, 200)
         blue = random.randrange(50, 200)
-        graphik.drawRectangle(location.get_x() * locationWidth, location.get_y() * locationHeight, locationWidth, locationHeight, (red,green,blue))
+        x = location.get_x() * locationWidth
+        y = location.get_y() * locationHeight
+        graphik.drawRectangle(x - 1, y - 1, locationWidth * 1.5, locationHeight * 1.5, (red,green,blue))
 
 def main():
     pygame.init()
