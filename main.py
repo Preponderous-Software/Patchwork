@@ -1,6 +1,7 @@
 import random
 import pygame
 from Viron.src.main.python.preponderous.viron.services.environmentService import EnvironmentService
+from Viron.src.main.python.preponderous.viron.services.gridService import GridService
 from Viron.src.main.python.preponderous.viron.services.locationService import LocationService
 from graphik import Graphik
 import os
@@ -31,19 +32,67 @@ else:
 url = "http://localhost"
 port = 9999
 
-locationService = LocationService(url, port)
-environmentService = EnvironmentService(url, port)
 exit_after_create = False
 if len(sys.argv) > 2 and sys.argv[2] == "--exit-after-create":
     exit_after_create = True
-def drawEnvironment(locations, graphik, locationWidth, locationHeight):
-    for location in locations:
+
+class LocationRenderer:
+    def __init__(self, graphik):
+        self.graphik = graphik
+
+    def draw(self, location, width, height):
+        x = location.get_x() * width
+        y = location.get_y() * height
+        color = self.get_random_color()
+        self.graphik.drawRectangle(x - 1, y - 1, width * 1.5, height * 1.5, color)
+    
+    def get_random_color(self):
         red = random.randrange(50, 200)
         green = random.randrange(50, 200)
         blue = random.randrange(50, 200)
-        x = location.get_x() * locationWidth
-        y = location.get_y() * locationHeight
-        graphik.drawRectangle(x - 1, y - 1, locationWidth * 1.5, locationHeight * 1.5, (red,green,blue))
+        return (red, green, blue)
+
+class GridRenderer:
+    def __init__(self, graphik, url, port):
+        self.graphik = graphik
+        self.locationService = LocationService(url, port)
+        self.location_renderer = LocationRenderer(graphik)
+        self.locationsCache = {}
+    
+    def draw(self, grid):
+        gridId = grid.get_grid_id()
+        if gridId not in self.locationsCache:
+            self.locationsCache[gridId] = self.locationService.get_locations_in_grid(gridId)
+        
+        locations = self.locationsCache[gridId]
+        width = displayWidth / grid.get_columns()
+        height = displayHeight / grid.get_rows()
+        for location in locations:
+            self.location_renderer.draw(location, width, height)
+
+class EnvironmentRenderer:
+    def __init__(self, graphik, grid_size, url, port):
+        self.graphik = graphik
+        self.grid_size = grid_size
+        self.grid_service = GridService(url, port)
+        self.grid_renderer = GridRenderer(graphik, url, port)
+
+    def draw(self, environment):
+        grids = self.grid_service.get_grids_in_environment(environment.getEnvironmentId())
+        # assume one grid for now, can be extended later
+        if grids:
+            self.grid_renderer.draw(grids[0])
+        else:
+            self.graphik.drawText("No grids found in environment.", displayWidth/2, displayHeight/2, 20, "red")
+
+def loadExistingEnvironment(env_file):
+    if os.path.exists(env_file):
+        log("Environments file exists, loading...")
+        with open(env_file, "r") as f:
+            return json.load(f)
+    else:
+        log("No existing environments found.")
+        return {}
 
 def main():
     pygame.init()
@@ -55,13 +104,12 @@ def main():
     environments = {}
 
     # Load existing environments if file exists
-    if os.path.exists(env_file):
-        log("Environments file exists, loading...")
-        with open(env_file, "r") as f:
-            environments = json.load(f)
+    environments = loadExistingEnvironment(env_file)
 
     # Create a unique key for the environment based on grid size and numGrids
     env_key = f"{numGrids}x{gridSize}"
+    
+    environmentService = EnvironmentService(url, port)
 
     if env_key in environments:
         graphik.drawText("Loading existing environment, please wait...", displayWidth/2, displayHeight/2, 20, "white")
@@ -95,19 +143,16 @@ def main():
         
         if exit_after_create:
             log("Exiting after environment creation.")
-            locations = locationService.get_locations_in_environment(environment.getEnvironmentId())
-            drawEnvironment(locations, graphik, displayWidth/gridSize, displayHeight/gridSize)
+            environmentRenderer = EnvironmentRenderer(graphik, gridSize, url, port)
+            environmentRenderer.draw(environment)
             pygame.display.update()
             time.sleep(2)
             pygame.quit()
             return
 
-    locationWidth = displayWidth/gridSize
-    locationHeight = displayHeight/gridSize
-    
-    locationsCache = {}
-
     running = True
+    
+    environmentRenderer = EnvironmentRenderer(graphik, gridSize, url, port)
 
     while running:
         for event in pygame.event.get():
@@ -115,12 +160,8 @@ def main():
                 pygame.quit()
                 quit()
                 
-        if locationsCache == {}:
-            log("Fetching locations from service...")
-            locationsCache = locationService.get_locations_in_environment(environment.getEnvironmentId())
-            
         gameDisplay.fill(white)
-        drawEnvironment(locationsCache, graphik, locationWidth, locationHeight)
+        environmentRenderer.draw(environment)
         pygame.display.update()
 
 main()
