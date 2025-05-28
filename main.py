@@ -85,7 +85,7 @@ class EnvironmentRenderer:
         else:
             self.graphik.drawText("No grids found in environment.", displayWidth/2, displayHeight/2, 20, "red")
 
-def loadExistingEnvironment(env_file):
+def loadEnvironmentsFile(env_file):
     if os.path.exists(env_file):
         log("Environments file exists, loading...")
         with open(env_file, "r") as f:
@@ -93,6 +93,30 @@ def loadExistingEnvironment(env_file):
     else:
         log("No existing environments found.")
         return {}
+
+def loadExistingEnvironment(graphik, env_key, environments, environmentService):
+    graphik.drawText("Loading existing environment, please wait...", displayWidth/2, displayHeight/2, 20, "white")
+    env_id = environments[env_key]["environment_id"]
+    try:
+        return environmentService.get_environment_by_id(env_id)
+    except Exception as e:
+        log(f"Error loading existing environment: {e}")
+        graphik.drawText("Error loading environment, please check logs.", displayWidth/2, displayHeight/2 + 30, 20, "red")
+        pygame.display.update()
+        time.sleep(2)
+        pygame.quit()
+        return
+
+def create_environment(graphik, numGrids, gridSize):
+    environmentService = EnvironmentService(url, port)
+    graphik.drawText("Creating environment, please wait...", 400, 400, 20,"white")
+    pygame.display.update()
+    log("Creating environment with " + str(numGrids) + " grid(s) of size " + str(gridSize) + "x" + str(gridSize))
+    start_time = time.time()
+    environment = environmentService.create_environment("Test", numGrids, gridSize)
+    end_time = time.time()
+    log(f"Created new environment with id {environment.getEnvironmentId()} in {end_time - start_time:.2f} seconds.")
+    return environment
 
 def main():
     pygame.init()
@@ -104,7 +128,7 @@ def main():
     environments = {}
 
     # Load existing environments if file exists
-    environments = loadExistingEnvironment(env_file)
+    environments = loadEnvironmentsFile(env_file)
 
     # Create a unique key for the environment based on grid size and numGrids
     env_key = f"{numGrids}x{gridSize}"
@@ -112,34 +136,11 @@ def main():
     environmentService = EnvironmentService(url, port)
 
     if env_key in environments:
-        graphik.drawText("Loading existing environment, please wait...", displayWidth/2, displayHeight/2, 20, "white")
-        env_id = environments[env_key]["environment_id"]
-        try:
-         environment = environmentService.get_environment_by_id(env_id)
-         log(f"Loaded existing environment with id {env_id} and size {gridSize}x{gridSize} with {numGrids} grid(s).")
-        except Exception as e:
-            log(f"Error loading existing environment: {e}")
-            graphik.drawText("Error loading environment, please check logs.", displayWidth/2, displayHeight/2 + 30, 20, "red")
-            pygame.display.update()
-            time.sleep(2)
-            pygame.quit()
-            return
+        log(f"Environment with key {env_key} already exists, loading...")
+        environment = loadExistingEnvironment(graphik, env_key, environments, environmentService)
     else:
-        graphik.drawText("Creating environment, please wait...", 400, 400, 20,"white")
-        pygame.display.update()
-        log("Creating environment with " + str(numGrids) + " grid(s) of size " + str(gridSize) + "x" + str(gridSize))
-        start_time = time.time()
-        environment = environmentService.create_environment("Test", numGrids, gridSize)
-        end_time = time.time()
-        environments[env_key] = {
-            "environment_id": environment.getEnvironmentId(),
-            "grid_size": gridSize,
-            "num_grids": numGrids,
-            "creation_time_seconds": end_time - start_time
-        }
-        with open(env_file, "w") as f:
-            json.dump(environments, f, indent=2)
-        log(f"Created new environment with id {environment.getEnvironmentId()} in {end_time - start_time:.2f} seconds.")
+        log(f"No existing environment found with key {env_key}, creating new one.")
+        environment = create_environment(graphik, numGrids, gridSize)
         
         if exit_after_create:
             log("Exiting after environment creation.")
