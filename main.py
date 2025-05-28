@@ -85,7 +85,7 @@ class EnvironmentRenderer:
         else:
             self.graphik.drawText("No grids found in environment.", displayWidth/2, displayHeight/2, 20, "red")
 
-def loadEnvironmentsFile(env_file):
+def load_environments_file(env_file):
     if os.path.exists(env_file):
         log("Environments file exists, loading...")
         with open(env_file, "r") as f:
@@ -94,7 +94,7 @@ def loadEnvironmentsFile(env_file):
         log("No existing environments found.")
         return {}
 
-def loadExistingEnvironment(graphik, env_key, environments, environmentService):
+def load_existing_environment(graphik, env_key, environments, environmentService):
     graphik.drawText("Loading existing environment, please wait...", displayWidth/2, displayHeight/2, 20, "white")
     env_id = environments[env_key]["environment_id"]
     try:
@@ -128,7 +128,7 @@ def main():
     environments = {}
 
     # Load existing environments if file exists
-    environments = loadEnvironmentsFile(env_file)
+    environments = load_environments_file(env_file)
 
     # Create a unique key for the environment based on grid size and numGrids
     env_key = f"{numGrids}x{gridSize}"
@@ -137,7 +137,7 @@ def main():
 
     if env_key in environments:
         log(f"Environment with key {env_key} already exists, loading...")
-        environment = loadExistingEnvironment(graphik, env_key, environments, environmentService)
+        environment = load_existing_environment(graphik, env_key, environments, environmentService)
     else:
         log(f"No existing environment found with key {env_key}, creating new one.")
         environment = create_environment(graphik, numGrids, gridSize)
