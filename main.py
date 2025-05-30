@@ -116,7 +116,8 @@ def create_environment(graphik, numGrids, gridSize):
     environment = environmentService.create_environment("Test", numGrids, gridSize)
     end_time = time.time()
     log(f"Created new environment with id {environment.getEnvironmentId()} in {end_time - start_time:.2f} seconds.")
-    return environment
+    
+    return environment, start_time, end_time
 
 def main():
     pygame.init()
@@ -140,7 +141,16 @@ def main():
         environment = load_existing_environment(graphik, env_key, environments, environmentService)
     else:
         log(f"No existing environment found with key {env_key}, creating new one.")
-        environment = create_environment(graphik, numGrids, gridSize)
+        environment, start_time, end_time = create_environment(graphik, numGrids, gridSize)
+        
+        environments[env_key] = {
+            "environment_id": environment.getEnvironmentId(),
+            "grid_size": gridSize,
+            "num_grids": numGrids,
+            "creation_time_seconds": end_time - start_time
+        }
+        with open(env_file, "w") as f:
+            json.dump(environments, f, indent=2)
         
         if exit_after_create:
             log("Exiting after environment creation.")
