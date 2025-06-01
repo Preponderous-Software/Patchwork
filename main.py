@@ -1,7 +1,6 @@
-import random
 import pygame
 from Viron.src.main.python.preponderous.viron.services.environmentService import EnvironmentService
-from Viron.src.main.python.preponderous.viron.services.locationService import LocationService
+from environmentRenderer import EnvironmentRenderer
 from graphik import Graphik
 import os
 import json
@@ -12,102 +11,108 @@ import time
 black = (0,0,0)
 white = (255,255,255)
 
-displayWidth = 800
-displayHeight = 800
+display_width = 800
+display_height = 800
 
 def log(message):
     print(message)
 
-numGrids = 1
+num_grids = 1
 if len(sys.argv) > 1:
     try:
-        gridSize = int(sys.argv[1])
+        grid_size = int(sys.argv[1])
     except ValueError:
         log("Invalid grid size argument, using default of 50.")
-        gridSize = 50
+        grid_size = 50
 else:
-    gridSize = 50
+    grid_size = 50
 
 url = "http://localhost"
 port = 9999
 
-locationService = LocationService(url, port)
-environmentService = EnvironmentService(url, port)
 exit_after_create = False
 if len(sys.argv) > 2 and sys.argv[2] == "--exit-after-create":
     exit_after_create = True
-def drawEnvironment(locations, graphik, locationWidth, locationHeight):
-    for location in locations:
-        red = random.randrange(50, 200)
-        green = random.randrange(50, 200)
-        blue = random.randrange(50, 200)
-        x = location.get_x() * locationWidth
-        y = location.get_y() * locationHeight
-        graphik.drawRectangle(x - 1, y - 1, locationWidth * 1.5, locationHeight * 1.5, (red,green,blue))
+
+def load_environments_file(env_file):
+    if os.path.exists(env_file):
+        log("Environments file exists, loading...")
+        with open(env_file, "r") as f:
+            return json.load(f)
+    else:
+        log("No existing environments found.")
+        return {}
+
+def load_existing_environment(graphik, env_key, environments, environmentService):
+    graphik.drawText("Loading existing environment, please wait...", display_width/2, display_height/2, 20, "white")
+    env_id = environments[env_key]["environment_id"]
+    try:
+        return environmentService.get_environment_by_id(env_id)
+    except Exception as e:
+        log(f"Error loading existing environment: {e}")
+        graphik.drawText("Error loading environment, please check logs.", display_width/2, display_height/2 + 30, 20, "red")
+        pygame.display.update()
+        time.sleep(2)
+        pygame.quit()
+        return
+
+def create_environment(graphik, num_grids, grid_size):
+    environmentService = EnvironmentService(url, port)
+    graphik.drawText("Creating environment, please wait...", 400, 400, 20,"white")
+    pygame.display.update()
+    log("Creating environment with " + str(num_grids) + " grid(s) of size " + str(grid_size) + "x" + str(grid_size))
+    start_time = time.time()
+    environment = environmentService.create_environment("Test", num_grids, grid_size)
+    end_time = time.time()
+    log(f"Created new environment with id {environment.getEnvironmentId()} in {end_time - start_time:.2f} seconds.")
+    
+    return environment, start_time, end_time
 
 def main():
     pygame.init()
-    gameDisplay = pygame.display.set_mode((displayWidth, displayHeight))
-    graphik = Graphik(gameDisplay)
+    game_display = pygame.display.set_mode((display_width, display_height))
+    graphik = Graphik(game_display)
     pygame.display.set_caption("Visualizing Environment With Random Colors")
  
     env_file = "environments.json"
     environments = {}
 
     # Load existing environments if file exists
-    if os.path.exists(env_file):
-        log("Environments file exists, loading...")
-        with open(env_file, "r") as f:
-            environments = json.load(f)
+    environments = load_environments_file(env_file)
 
     # Create a unique key for the environment based on grid size and numGrids
-    env_key = f"{numGrids}x{gridSize}"
+    env_key = f"{num_grids}x{grid_size}"
+    
+    environment_service = EnvironmentService(url, port)
 
     if env_key in environments:
-        graphik.drawText("Loading existing environment, please wait...", displayWidth/2, displayHeight/2, 20, "white")
-        env_id = environments[env_key]["environment_id"]
-        try:
-         environment = environmentService.get_environment_by_id(env_id)
-         log(f"Loaded existing environment with id {env_id} and size {gridSize}x{gridSize} with {numGrids} grid(s).")
-        except Exception as e:
-            log(f"Error loading existing environment: {e}")
-            graphik.drawText("Error loading environment, please check logs.", displayWidth/2, displayHeight/2 + 30, 20, "red")
-            pygame.display.update()
-            time.sleep(2)
-            pygame.quit()
-            return
+        log(f"Environment with key {env_key} already exists, loading...")
+        environment = load_existing_environment(graphik, env_key, environments, environment_service)
     else:
-        graphik.drawText("Creating environment, please wait...", 400, 400, 20,"white")
-        pygame.display.update()
-        log("Creating environment with " + str(numGrids) + " grid(s) of size " + str(gridSize) + "x" + str(gridSize))
-        start_time = time.time()
-        environment = environmentService.create_environment("Test", numGrids, gridSize)
-        end_time = time.time()
+        log(f"No existing environment found with key {env_key}, creating new one.")
+        environment, start_time, end_time = create_environment(graphik, num_grids, grid_size)
+        
         environments[env_key] = {
             "environment_id": environment.getEnvironmentId(),
-            "grid_size": gridSize,
-            "num_grids": numGrids,
+            "grid_size": grid_size,
+            "num_grids": num_grids,
             "creation_time_seconds": end_time - start_time
         }
         with open(env_file, "w") as f:
             json.dump(environments, f, indent=2)
-        log(f"Created new environment with id {environment.getEnvironmentId()} in {end_time - start_time:.2f} seconds.")
         
         if exit_after_create:
             log("Exiting after environment creation.")
-            locations = locationService.get_locations_in_environment(environment.getEnvironmentId())
-            drawEnvironment(locations, graphik, displayWidth/gridSize, displayHeight/gridSize)
+            environment_renderer = EnvironmentRenderer(graphik, url, port)
+            environment_renderer.draw(environment)
             pygame.display.update()
             time.sleep(2)
             pygame.quit()
             return
 
-    locationWidth = displayWidth/gridSize
-    locationHeight = displayHeight/gridSize
-    
-    locationsCache = {}
-
     running = True
+    
+    environment_renderer = EnvironmentRenderer(graphik, url, port)
 
     while running:
         for event in pygame.event.get():
@@ -115,12 +120,10 @@ def main():
                 pygame.quit()
                 quit()
                 
-        if locationsCache == {}:
-            log("Fetching locations from service...")
-            locationsCache = locationService.get_locations_in_environment(environment.getEnvironmentId())
-            
-        gameDisplay.fill(white)
-        drawEnvironment(locationsCache, graphik, locationWidth, locationHeight)
+        game_display.fill(white)
+        environment_renderer.draw(environment)
         pygame.display.update()
+        
+        time.sleep(0.1)
 
 main()
