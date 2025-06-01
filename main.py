@@ -103,7 +103,7 @@ def main():
         
         if exit_after_create:
             log("Exiting after environment creation.")
-            environmentRenderer = EnvironmentRenderer(graphik, gridSize, url, port)
+            environmentRenderer = EnvironmentRenderer(graphik, url, port)
             environmentRenderer.draw(environment)
             pygame.display.update()
             time.sleep(2)
@@ -112,7 +112,7 @@ def main():
 
     running = True
     
-    environmentRenderer = EnvironmentRenderer(graphik, gridSize, url, port)
+    environmentRenderer = EnvironmentRenderer(graphik, url, port)
 
     while running:
         for event in pygame.event.get():

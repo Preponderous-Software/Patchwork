@@ -4,9 +4,8 @@ from gridRenderer import GridRenderer
 
 
 class EnvironmentRenderer:
-    def __init__(self, graphik: Graphik, grid_size, url, port):
+    def __init__(self, graphik: Graphik, url, port):
         self.graphik = graphik
-        self.grid_size = grid_size
         self.grid_service = GridService(url, port)
         self.grid_renderer = GridRenderer(graphik, url, port)
 
