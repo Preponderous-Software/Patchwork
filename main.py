@@ -123,5 +123,7 @@ def main():
         game_display.fill(white)
         environment_renderer.draw(environment)
         pygame.display.update()
+        
+        time.sleep(0.1)
 
 main()
