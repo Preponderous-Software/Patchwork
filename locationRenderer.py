@@ -1,11 +1,14 @@
 import random
 
+from Viron.src.main.python.preponderous.viron.models.location import Location
+from graphik import Graphik
+
 
 class LocationRenderer:
-    def __init__(self, graphik):
+    def __init__(self, graphik: Graphik):
         self.graphik = graphik
 
-    def draw(self, location, width, height):
+    def draw(self, location: Location, width: int, height: int):
         x = location.get_x() * width
         y = location.get_y() * height
         color = self.get_random_color()
