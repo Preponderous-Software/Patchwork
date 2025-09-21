@@ -17,7 +17,7 @@ class GridRenderer:
             self.locations_cache[grid_id] = self.location_service.get_locations_in_grid(grid_id)
         
         locations = self.locations_cache[grid_id]
-        width = self.graphik.getGameDisplay().get_width() / grid.get_columns()
-        height = self.graphik.getGameDisplay().get_height() / grid.get_rows()
+        width = int(self.graphik.getGameDisplay().get_width() / grid.get_columns())
+        height = int(self.graphik.getGameDisplay().get_height() / grid.get_rows())
         for location in locations:
             self.location_renderer.draw(location, width, height)
