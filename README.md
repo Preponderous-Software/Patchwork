@@ -55,6 +55,8 @@ docker compose -f Viron/compose.yml up -d --build
 docker compose -f Viron/compose.yml down --remove-orphans --volumes
 ```
 
+Note that `down.bat` passes `--volumes`, so stopping Viron this way also deletes its database volumes. Any environments recorded in `environments.json` will no longer resolve afterwards.
+
 ### Running
 
 To launch the Patchwork visualization:
