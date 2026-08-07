@@ -8,7 +8,7 @@ This project is part of the [Viron](https://github.com/Preponderous-Software/Vir
 
 - Grid-based rendering of 2D environments
 - Initial support for **Pygame**
-- Interactive toggling of cell states
+- Caching of created environments in `environments.json` so a grid size can be re-loaded instead of re-created
 - Modular structure designed for future support of other graphics libraries
 - Clean interface for testing Viron entity placement and behavior
 
@@ -17,34 +17,75 @@ This project is part of the [Viron](https://github.com/Preponderous-Software/Vir
 ### Prerequisites
 
 - Python 3.10+
-- [Viron](https://github.com/Preponderous-Software/Viron)
 - [Pygame](https://www.pygame.org/) (`pip install pygame`)
+- [Viron](https://github.com/Preponderous-Software/Viron), which is vendored as a Git submodule and is also expected to be running as a server (see below)
+- Docker, if Viron is to be started from the bundled Compose file
 
 ### Setup
 
-Clone the repository and install dependencies:
+Clone the repository along with the `Viron` submodule:
 
 ```bash
-git clone https://github.com/dmccoystephenson/testing-drawing-grid.git
-cd testing-drawing-grid
-pip install -r requirements.txt  # if a requirements file exists
+git clone --recurse-submodules https://github.com/Preponderous-Software/patchwork.git
+cd patchwork
+pip install pygame
 ```
+
+If the repository was already cloned without `--recurse-submodules`, the submodule can be populated afterwards:
+
+```bash
+git submodule update --init --recursive
+```
+
+The submodule is required at runtime: `main.py` imports Viron's `EnvironmentService` and `LocationService` from the `Viron/` directory.
+
+### Starting Viron
+
+Patchwork expects a Viron server to be reachable at `http://localhost:9999`. On Windows, the bundled batch scripts start and stop it:
+
+```bat
+up.bat
+down.bat
+```
+
+The equivalent commands on other platforms are:
+
+```bash
+docker compose -f Viron/compose.yml up -d --build
+docker compose -f Viron/compose.yml down --remove-orphans --volumes
+```
+
+Note that `down.bat` passes `--volumes`, so stopping Viron this way also deletes its database volumes. Any environments recorded in `environments.json` will no longer resolve afterwards.
 
 ### Running
 
 To launch the Patchwork visualization:
 
 ```bash
-bash run.sh
-```
-
-Or run it directly:
-
-```bash
 python main.py
 ```
 
-Make sure Viron is running or properly configured for environment data access.
+An optional first argument sets the grid size, which defaults to `50`. A value that cannot be parsed as an integer also falls back to `50`.
+
+```bash
+python main.py 100
+```
+
+Passing `--exit-after-create` as the second argument renders a newly created environment once and then exits after roughly two seconds, instead of entering the render loop. It has no effect when the requested grid size is already cached in `environments.json`, since no environment is created in that case. Because the flag is read positionally, a grid size must be supplied before it:
+
+```bash
+python main.py 100 --exit-after-create
+```
+
+Created environments are recorded in `environments.json`, keyed by grid count and grid size (for example `1x50`; the grid count is currently fixed at `1`). A key that is already present in that file is re-loaded from Viron rather than re-created, so the file should be deleted to force re-creation.
+
+### Batch environment creation
+
+On Windows, `create_environments.bat` deletes `environments.json` and then invokes `python main.py <size> --exit-after-create` once per grid size, from `1` up to the maximum size given as its first argument (defaulting to `100`). Standard output is appended to `output.txt` and errors to `error_log.txt`.
+
+```bat
+create_environments.bat 25
+```
 
 ## Use Cases
 
@@ -56,6 +97,7 @@ Make sure Viron is running or properly configured for environment data access.
 ## Roadmap
 
 - [ ] Add support for other graphics libraries (Tkinter, OpenGL, etc.)
+- [ ] Interactive toggling of cell states
 - [ ] Layered rendering and animation
 - [ ] Customizable grid styling
 - [ ] Real-time interaction with live Viron simulations
