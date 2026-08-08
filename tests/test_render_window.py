@@ -48,7 +48,7 @@ class TestRenderWindow(unittest.TestCase):
 
         self.assertFalse(result)
 
-    def test_register_event_handler_not_called_for_quit(self):
+    def test_handlers_not_dispatched_for_quit_event(self):
         window = self.RenderWindow("Title", 640, 480)
         quit_event = MagicMock(type="QUIT_SENTINEL")
         self.mock_pygame.event.get.return_value = [quit_event]

@@ -60,10 +60,10 @@ class RenderWindow:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self._running = False
-            else:
-                # Call all registered event handlers
-                for handler in self._event_handlers:
-                    handler(event)
+                return False
+            # Call all registered event handlers
+            for handler in self._event_handlers:
+                handler(event)
         
         return self._running
     
