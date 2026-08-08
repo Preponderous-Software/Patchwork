@@ -1,3 +1,6 @@
 *.pyc
 *.json
 *.txt
+
+# the committed version reference is tracked despite the blanket ignore above
+!version.txt
