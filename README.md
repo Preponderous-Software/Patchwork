@@ -129,6 +129,14 @@ On Windows, `create_environments.bat` deletes `environments.json` and then invok
 create_environments.bat 25
 ```
 
+### Running the tests
+
+Unit tests live in `tests/` and use only the standard library's `unittest`. They mock Pygame, so no display and no running Viron server are required:
+
+```bash
+python -m unittest discover -s tests
+```
+
 ## Use Cases
 
 - Visualization of entity grids and spatial data from Viron
