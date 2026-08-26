@@ -23,6 +23,7 @@ Patchwork provides a `RenderWindow` class that encapsulates Pygame initializatio
 - Window and surface management
 - Event loop handling with custom event handlers
 - Frame rate control
+- Teardown via `close()` or the context-manager protocol
 - Clean API for common rendering operations
 
 ### Basic Usage
@@ -49,10 +50,24 @@ while window.should_continue():
     pygame.display.update()
     window.tick(60)  # 60 FPS
 
-pygame.quit()
+window.close()
 ```
 
-See `render_window_example.py` for more usage examples, including integration with the existing `Graphik` class.
+`close()` shuts Pygame back down and marks the window as no longer running, so any
+further call to `should_continue()` returns `False`. The window can also be used as a
+context manager, which tears it down even if the loop body raises:
+
+```python
+with RenderWindow("My Application", 800, 600) as window:
+    surface = window.get_surface()
+    while window.should_continue():
+        # ... render your content ...
+        pygame.display.update()
+        window.tick(60)
+```
+
+`main.py` uses `RenderWindow` for its own window and render loop, so it doubles as a
+worked example of integrating the class with `Graphik`.
 
 ## Getting Started
 
