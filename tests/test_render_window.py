@@ -59,6 +59,36 @@ class TestRenderWindow(unittest.TestCase):
 
         handler.assert_not_called()
 
+    def test_close_quits_pygame(self):
+        window = self.RenderWindow("Title", 640, 480)
+
+        window.close()
+
+        self.mock_pygame.quit.assert_called_once()
+
+    def test_should_continue_false_after_close_without_polling_events(self):
+        window = self.RenderWindow("Title", 640, 480)
+        window.close()
+
+        result = window.should_continue()
+
+        self.assertFalse(result)
+        self.mock_pygame.event.get.assert_not_called()
+
+    def test_context_manager_yields_window_and_closes_on_exit(self):
+        with self.RenderWindow("Title", 640, 480) as window:
+            self.assertIsInstance(window, self.RenderWindow)
+            self.mock_pygame.quit.assert_not_called()
+
+        self.mock_pygame.quit.assert_called_once()
+
+    def test_context_manager_closes_and_propagates_exception(self):
+        with self.assertRaises(ValueError):
+            with self.RenderWindow("Title", 640, 480):
+                raise ValueError("boom")
+
+        self.mock_pygame.quit.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()

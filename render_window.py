@@ -13,6 +13,7 @@ class RenderWindow:
     - Event loop processing
     - Frame rate control
     - Custom event handlers
+    - Teardown, either explicitly via close() or via the context-manager protocol
     """
     
     def __init__(self, title, width, height):
@@ -30,7 +31,24 @@ class RenderWindow:
         self._clock = pygame.time.Clock()
         self._running = True
         self._event_handlers = []
-    
+
+    def __enter__(self):
+        """
+        Enter the context-manager protocol.
+
+        Returns:
+            RenderWindow: This window, so that it can be bound by a with-statement
+        """
+        return self
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        """
+        Leave the context-manager protocol, tearing the window down.
+        Exceptions are not suppressed.
+        """
+        self.close()
+        return False
+
     def get_surface(self):
         """
         Get the display surface for rendering.
@@ -57,6 +75,9 @@ class RenderWindow:
         Returns:
             bool: True if the window should continue running, False otherwise
         """
+        if not self._running:
+            return False
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self._running = False
@@ -76,3 +97,12 @@ class RenderWindow:
             handler (callable): A function that takes a pygame.Event as parameter
         """
         self._event_handlers.append(handler)
+
+    def close(self):
+        """
+        Tear the window down, shutting Pygame back down and marking the window as
+        no longer running so that should_continue() reports False.
+        Calling this more than once is harmless.
+        """
+        self._running = False
+        pygame.quit()
