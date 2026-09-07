@@ -3,6 +3,7 @@ import pygame
 from Viron.src.main.python.preponderous.viron.services.environmentService import EnvironmentService
 from Viron.src.main.python.preponderous.viron.services.locationService import LocationService
 from graphik import Graphik
+from render_window import RenderWindow
 import os
 import json
 import sys
@@ -46,11 +47,10 @@ def drawEnvironment(locations, graphik, locationWidth, locationHeight):
         graphik.drawRectangle(x - 1, y - 1, locationWidth * 1.5, locationHeight * 1.5, (red,green,blue))
 
 def main():
-    pygame.init()
-    gameDisplay = pygame.display.set_mode((displayWidth, displayHeight))
+    window = RenderWindow("Visualizing Environment With Random Colors", displayWidth, displayHeight)
+    gameDisplay = window.get_surface()
     graphik = Graphik(gameDisplay)
-    pygame.display.set_caption("Visualizing Environment With Random Colors")
- 
+
     env_file = "environments.json"
     environments = {}
 
@@ -74,7 +74,7 @@ def main():
             graphik.drawText("Error loading environment, please check logs.", displayWidth/2, displayHeight/2 + 30, 20, "red")
             pygame.display.update()
             time.sleep(2)
-            pygame.quit()
+            window.close()
             return
     else:
         graphik.drawText("Creating environment, please wait...", 400, 400, 20,"white")
@@ -99,7 +99,7 @@ def main():
             drawEnvironment(locations, graphik, displayWidth/gridSize, displayHeight/gridSize)
             pygame.display.update()
             time.sleep(2)
-            pygame.quit()
+            window.close()
             return
 
     locationWidth = displayWidth/gridSize
@@ -107,20 +107,15 @@ def main():
     
     locationsCache = {}
 
-    running = True
-
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-                
+    while window.should_continue():
         if locationsCache == {}:
             log("Fetching locations from service...")
             locationsCache = locationService.get_locations_in_environment(environment.getEnvironmentId())
-            
+
         gameDisplay.fill(white)
         drawEnvironment(locationsCache, graphik, locationWidth, locationHeight)
         pygame.display.update()
+
+    window.close()
 
 main()

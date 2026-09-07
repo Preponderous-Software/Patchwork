@@ -1,6 +1,7 @@
 *.pyc
 *.json
 *.txt
+__pycache__/
 
 # the committed version reference is tracked despite the blanket ignore above
 !version.txt

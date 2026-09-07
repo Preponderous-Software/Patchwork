@@ -11,6 +11,63 @@ This project is part of the [Viron](https://github.com/Preponderous-Software/Vir
 - Caching of created environments in `environments.json` so a grid size can be re-loaded instead of re-created
 - Modular structure designed for future support of other graphics libraries
 - Clean interface for testing Viron entity placement and behavior
+- **RenderWindow** class for simplified Pygame window management
+
+## RenderWindow
+
+Patchwork provides a `RenderWindow` class that encapsulates Pygame initialization and window management. This class is designed for **composition, not inheritance**, making it easy to integrate into projects without subclassing.
+
+### Key Features
+
+- Automatic Pygame initialization
+- Window and surface management
+- Event loop handling with custom event handlers
+- Frame rate control
+- Teardown via `close()` or the context-manager protocol
+- Clean API for common rendering operations
+
+### Basic Usage
+
+```python
+from render_window import RenderWindow
+import pygame
+
+# Create window
+window = RenderWindow("My Application", 800, 600)
+surface = window.get_surface()
+
+# Register custom event handlers
+def handle_input(event):
+    if event.type == pygame.KEYDOWN:
+        print(f"Key pressed: {event.key}")
+
+window.register_event_handler(handle_input)
+
+# Main loop
+while window.should_continue():
+    surface.fill((0, 0, 0))
+    # ... render your content ...
+    pygame.display.update()
+    window.tick(60)  # 60 FPS
+
+window.close()
+```
+
+`close()` shuts Pygame back down and marks the window as no longer running, so any
+further call to `should_continue()` returns `False`. The window can also be used as a
+context manager, which tears it down even if the loop body raises:
+
+```python
+with RenderWindow("My Application", 800, 600) as window:
+    surface = window.get_surface()
+    while window.should_continue():
+        # ... render your content ...
+        pygame.display.update()
+        window.tick(60)
+```
+
+`main.py` uses `RenderWindow` for its own window and render loop, so it doubles as a
+worked example of integrating the class with `Graphik`.
 
 ## Getting Started
 
@@ -85,6 +142,14 @@ On Windows, `create_environments.bat` deletes `environments.json` and then invok
 
 ```bat
 create_environments.bat 25
+```
+
+### Running the tests
+
+Unit tests live in `tests/` and use only the standard library's `unittest`. They mock Pygame, so no display and no running Viron server are required:
+
+```bash
+python -m unittest discover -s tests
 ```
 
 ## Use Cases
