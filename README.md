@@ -136,6 +136,10 @@ python main.py 100 --exit-after-create
 
 Created environments are recorded in `environments.json`, keyed by grid count and grid size (for example `1x50`; the grid count is currently fixed at `1`). A key that is already present in that file is re-loaded from Viron rather than re-created, so the file should be deleted to force re-creation.
 
+The render loop is capped at 60 frames per second via `RenderWindow.tick()`. Since each location is re-coloured at random on every frame, that cap is also what sets the rate at which the visualization re-randomizes.
+
+`main.py` guards its entry point with `if __name__ == "__main__":`, so the module can be imported — by the test suite, or by another program wanting to call `main(gridSize, exitAfterCreate)` directly — without launching a window. `main()` also accepts `locationService` and `environmentService` arguments, which default to services pointed at `http://localhost:9999`.
+
 ### Batch environment creation
 
 On Windows, `create_environments.bat` deletes `environments.json` and then invokes `python main.py <size> --exit-after-create` once per grid size, from `1` up to the maximum size given as its first argument (defaulting to `100`). Standard output is appended to `output.txt` and errors to `error_log.txt`.
