@@ -150,11 +150,13 @@ create_environments.bat 25
 
 ### Running the tests
 
-Unit tests live in `tests/` and use only the standard library's `unittest`. They mock Pygame, so no display and no running Viron server are required:
+Unit tests live in `tests/` and use only the standard library's `unittest`. They mock Pygame and stand in for Viron's service modules with stubs registered in `sys.modules`, so no display, no running Viron server, and not even a populated `Viron/` submodule are required. Because Viron is stubbed rather than imported, the suite also runs on Python versions older than the 3.10 that `main.py` itself needs:
 
 ```bash
 python -m unittest discover -s tests
 ```
+
+Run the command from the repository root, so that `main.py` and `render_window.py` are importable.
 
 ## Use Cases
 
