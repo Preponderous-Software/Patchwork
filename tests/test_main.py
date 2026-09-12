@@ -1,5 +1,6 @@
 import json
 import os
+import runpy
 import sys
 import tempfile
 import types
@@ -85,6 +86,7 @@ class MainTestCase(unittest.TestCase):
         self.mockPygame = self.startPatch("main.pygame")
         self.mockRenderWindow = self.startPatch("main.RenderWindow")
         self.mockGraphik = self.startPatch("main.Graphik")
+        self.mockStartUsageReporting = self.startPatch("main.startUsageReporting")
         self.mockTime = self.startPatch("main.time")
         self.mockTime.time.side_effect = [1.0, 3.5]
 
@@ -132,10 +134,11 @@ class MainTestCase(unittest.TestCase):
         with open("environments.json", "r") as cacheFile:
             return json.load(cacheFile)
 
-    def runMain(self, gridSize=10, exitAfterCreate=False):
+    def runMain(self, gridSize=10, exitAfterCreate=False, reportUsage=False):
         main.main(gridSize, exitAfterCreate,
                   locationService=self.locationService,
-                  environmentService=self.environmentService)
+                  environmentService=self.environmentService,
+                  reportUsage=reportUsage)
 
 
 class TestEnvironmentCreation(MainTestCase):
@@ -226,6 +229,89 @@ class TestLoadingMessage(MainTestCase):
             main.displayWidth / 2, main.displayHeight / 2 + 30, 20, "red")
         self.window.should_continue.assert_not_called()
         self.window.close.assert_called_once()
+
+
+class TestUsageReporting(MainTestCase):
+    def test_direct_main_call_does_not_start_usage_reporting_or_write_settings(self):
+        self.runMain(gridSize=10)
+
+        self.mockStartUsageReporting.assert_not_called()
+        self.assertFalse(os.path.exists("settings.json"))
+
+    def test_cli_path_can_opt_in_to_usage_reporting(self):
+        self.runMain(gridSize=10, reportUsage=True)
+
+        self.mockStartUsageReporting.assert_called_once_with(log=main.log)
+
+
+class TestCliEntrypoint(unittest.TestCase):
+    def test_module_entrypoint_enables_usage_reporting(self):
+        usageReportingModule = types.ModuleType("usage_reporting")
+        usageReportingModule.startUsageReporting = MagicMock(name="startUsageReporting")
+
+        pygameModule = types.ModuleType("pygame")
+        pygameModule.display = types.SimpleNamespace(update=MagicMock(name="update"))
+
+        graphikModule = types.ModuleType("graphik")
+        graphikModule.Graphik = MagicMock(name="Graphik")
+
+        renderWindowModule = types.ModuleType("render_window")
+        window = MagicMock(name="window")
+        window.get_surface.return_value = MagicMock(name="surface")
+        window.should_continue.return_value = False
+        renderWindowModule.RenderWindow = MagicMock(name="RenderWindow", return_value=window)
+
+        class FakeEnvironment:
+            def getEnvironmentId(self):
+                return 7
+
+        class FakeEnvironmentService:
+            def __init__(self, url, port):
+                self.url = url
+                self.port = port
+
+            def create_environment(self, name, numGrids, gridSize):
+                return FakeEnvironment()
+
+        class FakeLocationService:
+            def __init__(self, url, port):
+                self.url = url
+                self.port = port
+
+            def get_locations_in_environment(self, environmentId):
+                return []
+
+        servicesPath = "Viron.src.main.python.preponderous.viron.services"
+        moduleMap = {
+            "usage_reporting": usageReportingModule,
+            "pygame": pygameModule,
+            "graphik": graphikModule,
+            "render_window": renderWindowModule,
+        }
+        parts = servicesPath.split(".")
+        for depth in range(1, len(parts) + 1):
+            packageName = ".".join(parts[:depth])
+            moduleMap[packageName] = types.ModuleType(packageName)
+
+        environmentModule = types.ModuleType(servicesPath + ".environmentService")
+        environmentModule.EnvironmentService = FakeEnvironmentService
+        locationModule = types.ModuleType(servicesPath + ".locationService")
+        locationModule.LocationService = FakeLocationService
+        moduleMap[environmentModule.__name__] = environmentModule
+        moduleMap[locationModule.__name__] = locationModule
+
+        workingDirectory = tempfile.TemporaryDirectory()
+        self.addCleanup(workingDirectory.cleanup)
+        previousDirectory = os.getcwd()
+        self.addCleanup(os.chdir, previousDirectory)
+        os.chdir(workingDirectory.name)
+
+        with patch.object(sys, "argv", ["main.py", "10", "--exit-after-create"]), \
+                patch("time.sleep", return_value=None), \
+                patch.dict(sys.modules, moduleMap, clear=False):
+            moduleGlobals = runpy.run_module("main", run_name="__main__")
+
+        usageReportingModule.startUsageReporting.assert_called_once_with(log=moduleGlobals["log"])
 
 
 class TestRenderLoop(MainTestCase):

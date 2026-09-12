@@ -4,6 +4,7 @@ from Viron.src.main.python.preponderous.viron.services.environmentService import
 from Viron.src.main.python.preponderous.viron.services.locationService import LocationService
 from graphik import Graphik
 from render_window import RenderWindow
+from usage_reporting import startUsageReporting
 import os
 import json
 import sys
@@ -68,7 +69,8 @@ def drawEnvironment(locations, graphik, locationWidth, locationHeight):
         y = location.get_y() * locationHeight
         graphik.drawRectangle(x - 1, y - 1, locationWidth * 1.5, locationHeight * 1.5, (red,green,blue))
 
-def main(gridSize=defaultGridSize, exitAfterCreate=False, locationService=None, environmentService=None):
+def main(gridSize=defaultGridSize, exitAfterCreate=False, locationService=None, environmentService=None,
+         reportUsage=False):
     """
     Render an environment of the requested size, creating it through Viron if it is not
     already recorded in the cache file.
@@ -78,12 +80,14 @@ def main(gridSize=defaultGridSize, exitAfterCreate=False, locationService=None, 
         exitAfterCreate (bool): Whether to render a newly created environment once and exit
         locationService (LocationService): The location service to use, or None to build one
         environmentService (EnvironmentService): The environment service to use, or None to build one
+        reportUsage (bool): Whether to start usage reporting for this process
     """
+    if reportUsage:
+        startUsageReporting(log=log)
     if locationService is None:
         locationService = LocationService(url, port)
     if environmentService is None:
         environmentService = EnvironmentService(url, port)
-
     window = RenderWindow("Visualizing Environment With Random Colors", displayWidth, displayHeight)
     gameDisplay = window.get_surface()
     graphik = Graphik(gameDisplay)
@@ -159,4 +163,4 @@ def main(gridSize=defaultGridSize, exitAfterCreate=False, locationService=None, 
 
 if __name__ == "__main__":
     gridSize, exitAfterCreate = parseArgs(sys.argv)
-    main(gridSize, exitAfterCreate)
+    main(gridSize, exitAfterCreate, reportUsage=True)

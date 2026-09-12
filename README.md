@@ -12,6 +12,7 @@ This project is part of the [Viron](https://github.com/Preponderous-Software/Vir
 - Modular structure designed for future support of other graphics libraries
 - Clean interface for testing Viron entity placement and behavior
 - **RenderWindow** class for simplified Pygame window management
+- Anonymous usage reporting (a `startup` event with the program name and version) with an opt-out in `settings.json`
 
 ## RenderWindow
 
@@ -138,7 +139,7 @@ Created environments are recorded in `environments.json`, keyed by grid count an
 
 The render loop is capped at 60 frames per second via `RenderWindow.tick()`. Since each location is re-coloured at random on every frame, that cap is also what sets the rate at which the visualization re-randomizes.
 
-`main.py` guards its entry point with `if __name__ == "__main__":`, so the module can be imported — by the test suite, or by another program wanting to call `main(gridSize, exitAfterCreate)` directly — without launching a window. `main()` also accepts `locationService` and `environmentService` arguments, which default to services pointed at `http://localhost:9999`.
+`main.py` guards its entry point with `if __name__ == "__main__":`, so the module can be imported — by the test suite, or by another program wanting to call `main(gridSize, exitAfterCreate)` directly — without launching a window. `main()` also accepts `locationService` and `environmentService` arguments, which default to services pointed at `http://localhost:9999`. Usage reporting is started only by the CLI entrypoint, so a direct `main()` call does not create or modify `settings.json`.
 
 ### Batch environment creation
 
@@ -147,6 +148,36 @@ On Windows, `create_environments.bat` deletes `environments.json` and then invok
 ```bat
 create_environments.bat 25
 ```
+
+### Usage reporting
+
+Patchwork can report that it was started to [trace](https://github.com/Stephenson-Software/trace)
+at `https://trace.danielstephenson.dev`, so that it is known which versions are in use. Exactly one
+`startup` event is sent per launch, carrying only the program name (`patchwork`) and its version
+from `version.txt`. Nothing about the machine, the user, the grid size or the environments is sent.
+The report is made from a background thread, never blocks the program and never raises; if the
+service is unreachable the event is simply dropped.
+
+Reporting is enabled by configuration but requires a runtime key in the
+`PATCHWORK_USAGE_REPORTING_KEY` environment variable; no key is stored in the repository or written
+into `settings.json`. On first launch, the CLI prints a one-line notice and writes the settings
+block below to `settings.json` in the working directory (the same place as `environments.json`),
+after which the notice is not shown again. To opt out, set `enabled` to `false`:
+
+```json
+{
+  "usage_reporting": {
+    "enabled": false,
+    "endpoint": "https://trace.danielstephenson.dev"
+  }
+}
+```
+
+`endpoint` selects the trace server. The program key must be supplied at runtime through
+`PATCHWORK_USAGE_REPORTING_KEY`; if it is absent, no event is sent. The client lives in
+`trace_client.py`, vendored from
+[trace-client-python](https://github.com/Stephenson-Software/trace-client-python) with only the
+header note adjusted for Patchwork, and the settings handling in `usage_reporting.py`.
 
 ### Running the tests
 
