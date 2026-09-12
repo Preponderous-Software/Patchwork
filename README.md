@@ -12,6 +12,7 @@ This project is part of the [Viron](https://github.com/Preponderous-Software/Vir
 - Modular structure designed for future support of other graphics libraries
 - Clean interface for testing Viron entity placement and behavior
 - **RenderWindow** class for simplified Pygame window management
+- Anonymous usage reporting (a `startup` event with the program name and version) with an opt-out in `settings.json`
 
 ## RenderWindow
 
@@ -143,6 +144,34 @@ On Windows, `create_environments.bat` deletes `environments.json` and then invok
 ```bat
 create_environments.bat 25
 ```
+
+### Usage reporting
+
+Patchwork reports that it was started to [trace](https://github.com/Stephenson-Software/trace) at
+`https://trace.danielstephenson.dev`, so that it is known which versions are in use. Exactly one
+`startup` event is sent per launch, carrying only the program name (`patchwork`) and its version
+from `version.txt`. Nothing about the machine, the user, the grid size or the environments is sent.
+The report is made from a background thread, never blocks the program and never raises; if the
+service is unreachable the event is simply dropped.
+
+Reporting is on by default. The first launch prints a one-line notice and writes the settings
+block below to `settings.json` in the working directory (the same place as `environments.json`),
+after which the notice is not shown again. To opt out, set `enabled` to `false`:
+
+```json
+{
+  "usage_reporting": {
+    "enabled": false,
+    "endpoint": "https://trace.danielstephenson.dev",
+    "key": "..."
+  }
+}
+```
+
+`endpoint` and `key` select the trace server and the program key issued for Patchwork; they only
+need changing when reporting to a different trace instance. The client lives in `trace_client.py`,
+vendored unmodified from [trace-client-python](https://github.com/Stephenson-Software/trace-client-python),
+and the settings handling in `usage_reporting.py`.
 
 ### Running the tests
 

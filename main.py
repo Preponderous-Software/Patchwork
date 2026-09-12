@@ -4,6 +4,7 @@ from Viron.src.main.python.preponderous.viron.services.environmentService import
 from Viron.src.main.python.preponderous.viron.services.locationService import LocationService
 from graphik import Graphik
 from render_window import RenderWindow
+from usage_reporting import startUsageReporting
 import os
 import json
 import sys
@@ -47,6 +48,7 @@ def drawEnvironment(locations, graphik, locationWidth, locationHeight):
         graphik.drawRectangle(x - 1, y - 1, locationWidth * 1.5, locationHeight * 1.5, (red,green,blue))
 
 def main():
+    startUsageReporting(log=log)
     window = RenderWindow("Visualizing Environment With Random Colors", displayWidth, displayHeight)
     gameDisplay = window.get_surface()
     graphik = Graphik(gameDisplay)
