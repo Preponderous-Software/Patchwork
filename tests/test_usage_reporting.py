@@ -9,8 +9,8 @@ from unittest.mock import patch
 import usage_reporting
 from usage_reporting import (
     DEFAULT_ENDPOINT,
-    DEFAULT_KEY,
     FIRST_RUN_NOTICE,
+    KEY_ENV_VAR,
     buildClient,
     loadSettings,
     readVersion,
@@ -57,7 +57,7 @@ class TestUsageReportingSettings(unittest.TestCase):
     def test_first_run_writes_defaults_and_shows_the_notice_once(self):
         section = loadSettings(self.settingsFile, self.log)
 
-        self.assertEqual({"enabled": True, "endpoint": DEFAULT_ENDPOINT, "key": DEFAULT_KEY}, section)
+        self.assertEqual({"enabled": True, "endpoint": DEFAULT_ENDPOINT}, section)
         self.assertEqual([FIRST_RUN_NOTICE], self.logged)
         self.assertEqual({"usage_reporting": section}, self.readSettingsFile())
 
@@ -70,6 +70,7 @@ class TestUsageReportingSettings(unittest.TestCase):
     def test_notice_names_the_program_and_the_opt_out(self):
         self.assertIn("patchwork sends a startup event", FIRST_RUN_NOTICE)
         self.assertIn("trace.danielstephenson.dev", FIRST_RUN_NOTICE)
+        self.assertIn(KEY_ENV_VAR, FIRST_RUN_NOTICE)
         self.assertIn('"enabled": false', FIRST_RUN_NOTICE)
         self.assertIn("settings.json", FIRST_RUN_NOTICE)
 
@@ -112,9 +113,17 @@ class TestUsageReportingSettings(unittest.TestCase):
     def test_missing_endpoint_and_key_fall_back_to_the_defaults(self):
         client = buildClient({"enabled": True})
 
-        self.assertTrue(client.enabled)
+        self.assertFalse(client.enabled)
         self.assertEqual(DEFAULT_ENDPOINT + "/api/metrics", client._endpoint)
-        self.assertEqual(DEFAULT_KEY, client._key)
+        self.assertEqual("", client._key)
+        client.close()
+
+    def test_runtime_key_enables_reporting_without_writing_it_to_settings(self):
+        with patch.dict(os.environ, {KEY_ENV_VAR: "runtime-key"}):
+            client = buildClient({"enabled": True})
+
+        self.assertTrue(client.enabled)
+        self.assertEqual("runtime-key", client._key)
         client.close()
 
     def test_read_version_comes_from_version_txt(self):
@@ -138,9 +147,9 @@ class TestStartupEvent(unittest.TestCase):
 
     def test_startup_event_reaches_the_configured_endpoint_with_name_and_version(self):
         with open(self.settingsFile, "w") as f:
-            json.dump({"usage_reporting": {"enabled": True, "endpoint": self.endpoint, "key": "test-key"}}, f)
+            json.dump({"usage_reporting": {"enabled": True, "endpoint": self.endpoint}}, f)
 
-        with patch("usage_reporting.atexit"):
+        with patch("usage_reporting.atexit"), patch.dict(os.environ, {KEY_ENV_VAR: "test-key"}):
             client = startUsageReporting(self.settingsFile, lambda message: None)
         self.addCleanup(client.close)
 
@@ -153,9 +162,9 @@ class TestStartupEvent(unittest.TestCase):
 
     def test_opted_out_startup_sends_nothing(self):
         with open(self.settingsFile, "w") as f:
-            json.dump({"usage_reporting": {"enabled": False, "endpoint": self.endpoint, "key": "test-key"}}, f)
+            json.dump({"usage_reporting": {"enabled": False, "endpoint": self.endpoint}}, f)
 
-        with patch("usage_reporting.atexit"):
+        with patch("usage_reporting.atexit"), patch.dict(os.environ, {KEY_ENV_VAR: "test-key"}):
             client = startUsageReporting(self.settingsFile, lambda message: None)
 
         self.assertFalse(client.enabled)

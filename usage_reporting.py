@@ -11,19 +11,19 @@ APPLICATION = "patchwork"
 SETTINGS_FILE = "settings.json"
 SETTINGS_SECTION = "usage_reporting"
 DEFAULT_ENDPOINT = "https://trace.danielstephenson.dev"
-DEFAULT_KEY = "LI4sklsyL-L1AXPQmBpgC5eI2H1jeYBUHavpuVdCGME"
+KEY_ENV_VAR = "PATCHWORK_USAGE_REPORTING_KEY"
 VERSION_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "version.txt")
 
 FIRST_RUN_NOTICE = (
-    "Usage reporting is on: patchwork sends a startup event (program name and version only) "
-    "to trace.danielstephenson.dev. "
+    "Usage reporting is available: when PATCHWORK_USAGE_REPORTING_KEY is set, patchwork sends "
+    "a startup event (program name and version only) to trace.danielstephenson.dev. "
     'Turn it off with "usage_reporting": {"enabled": false} in settings.json.'
 )
 
 
 def defaultSettings():
     """The usage_reporting block written to settings.json on first run."""
-    return {"enabled": True, "endpoint": DEFAULT_ENDPOINT, "key": DEFAULT_KEY}
+    return {"enabled": True, "endpoint": DEFAULT_ENDPOINT}
 
 
 def readVersion(versionFile=VERSION_FILE):
@@ -70,16 +70,17 @@ def loadSettings(settingsFile=SETTINGS_FILE, log=print):
     return settings[SETTINGS_SECTION]
 
 
-def buildClient(section):
+def buildClient(section, log=print):
     """A TraceClient for the given usage_reporting settings; disabled when they are None or opted out."""
     if section is None:
         return TraceClient.disabled()
     enabled = section.get("enabled", True)
     endpoint = section.get("endpoint") or DEFAULT_ENDPOINT
-    key = section.get("key") or DEFAULT_KEY
+    key = os.environ.get(KEY_ENV_VAR, "").strip()
     try:
         return TraceClient(endpoint, APPLICATION, key=key, enabled=bool(enabled))
-    except Exception:
+    except ValueError as e:
+        log(f"Could not configure usage reporting ({e}); usage reporting is off.")
         return TraceClient.disabled()
 
 
@@ -92,8 +93,9 @@ def startUsageReporting(settingsFile=SETTINGS_FILE, log=print):
         TraceClient: The client, so that further events could be reported.
     """
     try:
-        client = buildClient(loadSettings(settingsFile, log))
-    except Exception:
+        client = buildClient(loadSettings(settingsFile, log), log)
+    except Exception as e:
+        log(f"Could not start usage reporting ({e}); usage reporting is off.")
         return TraceClient.disabled()
     version = readVersion()
     client.report("startup", tags={"version": version} if version else None)

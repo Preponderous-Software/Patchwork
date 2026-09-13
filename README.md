@@ -137,6 +137,10 @@ python main.py 100 --exit-after-create
 
 Created environments are recorded in `environments.json`, keyed by grid count and grid size (for example `1x50`; the grid count is currently fixed at `1`). A key that is already present in that file is re-loaded from Viron rather than re-created, so the file should be deleted to force re-creation.
 
+The render loop is capped at 60 frames per second via `RenderWindow.tick()`. Since each location is re-coloured at random on every frame, that cap is also what sets the rate at which the visualization re-randomizes.
+
+`main.py` guards its entry point with `if __name__ == "__main__":`, so the module can be imported — by the test suite, or by another program wanting to call `main(gridSize, exitAfterCreate)` directly — without launching a window. `main()` also accepts `locationService` and `environmentService` arguments, which default to services pointed at `http://localhost:9999`. Usage reporting is started only by the CLI entrypoint, so a direct `main()` call does not create or modify `settings.json`.
+
 ### Batch environment creation
 
 On Windows, `create_environments.bat` deletes `environments.json` and then invokes `python main.py <size> --exit-after-create` once per grid size, from `1` up to the maximum size given as its first argument (defaulting to `100`). Standard output is appended to `output.txt` and errors to `error_log.txt`.
@@ -147,14 +151,16 @@ create_environments.bat 25
 
 ### Usage reporting
 
-Patchwork reports that it was started to [trace](https://github.com/Stephenson-Software/trace) at
-`https://trace.danielstephenson.dev`, so that it is known which versions are in use. Exactly one
+Patchwork can report that it was started to [trace](https://github.com/Stephenson-Software/trace)
+at `https://trace.danielstephenson.dev`, so that it is known which versions are in use. Exactly one
 `startup` event is sent per launch, carrying only the program name (`patchwork`) and its version
 from `version.txt`. Nothing about the machine, the user, the grid size or the environments is sent.
 The report is made from a background thread, never blocks the program and never raises; if the
 service is unreachable the event is simply dropped.
 
-Reporting is on by default. The first launch prints a one-line notice and writes the settings
+Reporting is enabled by configuration but requires a runtime key in the
+`PATCHWORK_USAGE_REPORTING_KEY` environment variable; no key is stored in the repository or written
+into `settings.json`. On first launch, the CLI prints a one-line notice and writes the settings
 block below to `settings.json` in the working directory (the same place as `environments.json`),
 after which the notice is not shown again. To opt out, set `enabled` to `false`:
 
@@ -162,24 +168,26 @@ after which the notice is not shown again. To opt out, set `enabled` to `false`:
 {
   "usage_reporting": {
     "enabled": false,
-    "endpoint": "https://trace.danielstephenson.dev",
-    "key": "..."
+    "endpoint": "https://trace.danielstephenson.dev"
   }
 }
 ```
 
-`endpoint` and `key` select the trace server and the program key issued for Patchwork; they only
-need changing when reporting to a different trace instance. The client lives in `trace_client.py`,
-vendored unmodified from [trace-client-python](https://github.com/Stephenson-Software/trace-client-python),
-and the settings handling in `usage_reporting.py`.
+`endpoint` selects the trace server. The program key must be supplied at runtime through
+`PATCHWORK_USAGE_REPORTING_KEY`; if it is absent, no event is sent. The client lives in
+`trace_client.py`, vendored from
+[trace-client-python](https://github.com/Stephenson-Software/trace-client-python) with only the
+header note adjusted for Patchwork, and the settings handling in `usage_reporting.py`.
 
 ### Running the tests
 
-Unit tests live in `tests/` and use only the standard library's `unittest`. They mock Pygame, so no display and no running Viron server are required:
+Unit tests live in `tests/` and use only the standard library's `unittest`. They mock Pygame and stand in for Viron's service modules with stubs registered in `sys.modules`, so no display, no running Viron server, and not even a populated `Viron/` submodule are required. Because Viron is stubbed rather than imported, the suite also runs on Python versions older than the 3.10 that `main.py` itself needs:
 
 ```bash
 python -m unittest discover -s tests
 ```
+
+Run the command from the repository root, so that `main.py` and `render_window.py` are importable.
 
 ## Use Cases
 

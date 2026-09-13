@@ -14,6 +14,7 @@ import json
 import logging
 import queue
 import threading
+import time
 import urllib.error
 import urllib.request
 from typing import Dict, Mapping, Optional
@@ -72,6 +73,8 @@ class TraceClient:
             self._thread = threading.Thread(target=self._drain, name="trace-client/" + self._application,
                                             daemon=True)
             self._thread.start()
+        self._lock = threading.Lock()
+        self._closing = False
 
     @classmethod
     def disabled(cls) -> "TraceClient":
@@ -87,35 +90,40 @@ class TraceClient:
                tags: Optional[Mapping[str, str]] = None) -> None:
         """Report that ``name`` happened, with an optional numeric value and
         optional string tags. Returns immediately; see the class docstring."""
-        if self._queue is None or not name or not name.strip():
+        if not name or not name.strip():
             return
         try:
             body = _json(self._application, name, value, tags)
-            self._queue.put_nowait(body)
+            with self._lock:
+                if self._queue is None or self._closing:
+                    return
+                self._queue.put_nowait(body)
         except queue.Full:
             _LOG.debug("[trace] queue full, dropped %s", name)
         except Exception as failure:  # noqa: BLE001 - a report must never be the reason a program stops
             _LOG.debug("[trace] could not queue %s: %s", name, failure)
 
     def close(self, timeout: float = TIMEOUT_SECONDS) -> None:
-        """Stop the sending thread. Reports already queued are dropped; one in
-        flight is given ``timeout`` seconds to finish. Safe to call more than
-        once, and on a disabled client."""
+        """Stop accepting new reports and let the sending thread flush any
+        report already queued. Safe to call more than once, and on a disabled
+        client."""
         if self._queue is None or self._thread is None:
             return
-        q, thread = self._queue, self._thread
-        self._queue = None
-        # Drain whatever is queued so the sentinel is the next thing the thread sees.
-        try:
-            while True:
-                q.get_nowait()
-        except queue.Empty:
-            pass
-        try:
-            q.put_nowait(None)
-        except queue.Full:
-            pass
-        thread.join(timeout)
+        thread = self._thread
+        deadline = time.monotonic() + timeout
+        with self._lock:
+            q = self._queue
+            if q is None:
+                return
+            self._closing = True
+            try:
+                q.put(None, timeout=max(0, deadline - time.monotonic()))
+            except queue.Full:
+                self._closing = False
+                return
+            else:
+                self._queue = None
+        thread.join(max(0, deadline - time.monotonic()))
 
     # -- internals --------------------------------------------------------
 

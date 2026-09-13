@@ -16,6 +16,7 @@ class _Capture:
         self.requests = []
         self.reply_status = 201
         self.arrived = threading.Event()
+        self.started = threading.Event()
         self.release = threading.Event()
         self.release.set()  # by default answer at once
 
@@ -25,6 +26,7 @@ def _server(capture):
         def do_POST(self):
             length = int(self.headers.get("Content-Length", "0"))
             body = self.rfile.read(length)
+            capture.started.set()
             capture.release.wait(10)
             capture.requests.append({
                 "path": self.path,
@@ -161,6 +163,44 @@ class TraceClientTest(unittest.TestCase):
         client.close()
         self.assertLess(time.monotonic() - before, TraceClient.TIMEOUT_SECONDS + 1)
         self.assertFalse(client.enabled)
+
+    def test_close_flushes_reports_already_queued(self):
+        self.capture.release.clear()
+        client = TraceClient(self.base_url, "MyGame", key="k")
+        client.report("first")
+        self.assertTrue(self.capture.started.wait(5), "the first report should start sending")
+        client.report("second")
+
+        closer = threading.Thread(target=client.close)
+        closer.start()
+        time.sleep(0.1)
+        self.capture.release.set()
+        closer.join(5)
+
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and len(self.capture.requests) < 2:
+            time.sleep(0.05)
+
+        self.assertEqual(["first", "second"],
+                         [json.loads(request["body"])["name"] for request in self.capture.requests])
+
+    def test_close_can_be_retried_if_the_queue_is_full(self):
+        self.capture.release.clear()
+        client = TraceClient(self.base_url, "MyGame", key="k")
+        client.report("first")
+        self.assertTrue(self.capture.started.wait(5), "the first report should start sending")
+        for index in range(TraceClient.QUEUE_CAPACITY):
+            client.report("queued-%d" % index)
+
+        client.close(timeout=0.01)
+
+        self.assertTrue(client.enabled)
+        self.assertIsNotNone(client._queue)
+
+        self.capture.release.set()
+        client.close()
+
+        self.assertIsNone(client._queue)
 
 
 if __name__ == "__main__":
